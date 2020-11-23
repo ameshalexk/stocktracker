@@ -14,8 +14,31 @@ async function initBrowser() {
     // args: ['--no-sandbox', '--disable-gpu'],
   });
   const page = await browser.newPage();
-  await page.goto(rand_url);
+  await page.goto(ps5_url);
   return page;
+}
+
+async function sendNotification() {
+  let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'ameshalexburner@gmail.com',
+      pass: 'Water@123',
+    },
+  });
+
+  let textToSend = 'Go get that Playstation 5!';
+  let htmlText = `<a href=\"${ps5_url}\">Link</a>`;
+
+  let info = await transporter.sendMail({
+    from: '"Walmart Monitor" <ameshalexusa@gmail.com>',
+    to: 'ameshalexusa@gmail.com',
+    subject: 'Playstation 5 IS IN STOCK',
+    text: textToSend,
+    html: htmlText,
+  });
+
+  console.log('Message Sent: %s', info.messageId);
 }
 
 async function checkStock(page) {
@@ -28,15 +51,27 @@ async function checkStock(page) {
       .includes('outofstock');
     if (out_of_stock) {
       console.log('out of stock');
+      monitor();
     } else {
-      console.log('In stock');
+      sendNotification();
     }
   });
 }
 
 async function monitor() {
-  let page = await initBrowser();
-  await checkStock(page);
+  const page = await initBrowser();
+  let job = new CronJob(
+    '*/30 * * * *',
+    function () {
+      checkStock(page);
+    },
+    null,
+    true,
+    null,
+    null,
+    true
+  );
+  job.start();
 }
 
 monitor();
