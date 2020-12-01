@@ -10,8 +10,9 @@ const rand_url =
 
 async function initBrowser() {
   const browser = await puppeteer.launch({
-    headless: false,
-    // args: ['--no-sandbox', '--disable-gpu'],
+    headless: true,
+    executablePath: '/usr/bin/chromium-browser',
+    args: ['--no-sandbox', '--disable-gpu'],
   });
   const page = await browser.newPage();
   await page.goto(ps5_url);
@@ -50,7 +51,7 @@ async function checkStock(page) {
       .toLowerCase()
       .includes('outofstock');
     if (out_of_stock) {
-      console.log('out of stock');
+      console.log('out of stock forever');
       monitor();
     } else {
       sendNotification();
@@ -61,7 +62,7 @@ async function checkStock(page) {
 async function monitor() {
   const page = await initBrowser();
   let job = new CronJob(
-    '*/30 * * * *',
+    '15 * * * * *',
     function () {
       checkStock(page);
     },
