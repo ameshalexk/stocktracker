@@ -3,18 +3,57 @@ const CronJob = require('cron').CronJob;
 const nodemailer = require('nodemailer');
 const $ = require('cheerio');
 
-const ps5_url =
-  'https://www.walmart.com/ip/Sony-PlayStation-5-Digital-Edition/493824815';
-const rand_url =
-  'https://www.walmart.com/ip/Nintendo-Switch-Lite-Console-Turquoise/306029956';
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
+// function removeChromiumAlert() {
+//   try {
+//     const chromiumPath = '/chrome-mac/Chromium.app';
+//     const macPath = path.join(
+//       path.dirname(require.resolve('puppeteer')),
+//       '/.local-chromium/'
+//     );
+//     const [generatedDir] = fs
+//       .readdirSync(macPath, { withFileTypes: true })
+//       .filter((dirent) => dirent.isDirectory())
+//       .map((dirent) => dirent.name);
+//     const chromiumAppPath = path.join(macPath, generatedDir, chromiumPath);
+//     const mode = `0${(
+//       fs.statSync(chromiumAppPath).mode & parseInt('777', 8)
+//     ).toString(8)}`;
+
+//     if (mode !== '0777') {
+//       execSync(`sudo chmod 777 ${chromiumAppPath}`);
+//       execSync(`sudo codesign --force --deep --sign - ${chromiumAppPath}`);
+//     }
+//   } catch (err) {
+//     console.warn(
+//       'unable to sign Chromium, u may see the annoying message when the browser start'
+//     );
+//     console.warn(err);
+//   }
+// }
+
+// const ps5_url =
+//   'https://www.walmart.com/ip/Sony-PlayStation-5-Digital-Edition/493824815';
+// const rand_url = 'https://www.google.com';
+const rand_url =
+  'https://clients.mindbodyonline.com/asp/adm/adm_appt_search.asp?studioid=253992&tab';
+// const rand_url =
+//   'https://www.walmart.com/ip/Nintendo-Switch-Lite-Console-Turquoise/306029956';
+// const rand_url =
+//   'https://www.walmart.com/ip/Sony-PlayStation-5-Digital-Edition/493824815';
+// removeChromiumAlert();
 async function initBrowser() {
   const browser = await puppeteer.launch({
     headless: false,
+    defaultViewport: null,
     // args: ['--no-sandbox', '--disable-gpu'],
   });
   const page = await browser.newPage();
-  await page.goto(ps5_url);
+
+  await page.goto(rand_url);
   return page;
 }
 
@@ -28,7 +67,7 @@ async function sendNotification() {
   });
 
   let textToSend = 'Go get that Playstation 5!';
-  let htmlText = `<a href=\"${ps5_url}\">Link</a>`;
+  let htmlText = `<a href=\"${rand_url}\">Link</a>`;
 
   let info = await transporter.sendMail({
     from: '"Walmart Monitor" <ameshalexusa@gmail.com>',
@@ -42,18 +81,20 @@ async function sendNotification() {
 }
 
 async function checkStock(page) {
+  // console.log(page);
   await page.reload();
   let content = await page.evaluate(() => document.body.innerHTML);
-  $("link[itemprop='availability']", content).each(function () {
-    let out_of_stock = $(this)
-      .attr('href')
-      .toLowerCase()
-      .includes('outofstock');
+
+  $("form[name='wsLaunch']", content).each(function () {
+    let out_of_stock = $(this).attr('method').toLowerCase().includes('post');
     if (out_of_stock) {
       console.log('out of stock');
-      monitor();
+
+      // monitor();
     } else {
-      sendNotification();
+      // sendNotification();
+      console.log('in stock');
+      // console.log(content);
     }
   });
 }
