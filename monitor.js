@@ -6,6 +6,7 @@ const $ = require('cheerio');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 // function removeChromiumAlert() {
 //   try {
@@ -81,22 +82,21 @@ async function sendNotification() {
 }
 
 async function checkStock(page) {
-  // console.log(page);
   await page.reload();
-  let content = await page.evaluate(() => document.body.innerHTML);
+  console.log(page._frameManager._mainFrame._mainWorld._frameManager._page);
 
-  $("form[name='wsLaunch']", content).each(function () {
-    let out_of_stock = $(this).attr('method').toLowerCase().includes('post');
-    if (out_of_stock) {
-      console.log('out of stock');
+  // const nodeChildren = await page.$eval(body, (uiElement) => {
+  //   return uiElement.children;
+  // });
+  // console.log(nodeChildren); // Outputs the array of the nodes children
 
-      // monitor();
-    } else {
-      // sendNotification();
-      console.log('in stock');
-      // console.log(content);
-    }
-  });
+  // let content = await page.evaluate(() => document.body.innerHTML);
+  // console.log('ss');
+  // await page.type('body', 'ameshalexusa@gmail.com', { delay: 10 });
+
+  // const example = await page.$('#footer');
+
+  // console.log(example);
 }
 
 async function monitor() {
