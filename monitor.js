@@ -1,118 +1,182 @@
 const puppeteer = require('puppeteer');
-const CronJob = require('cron').CronJob;
-const nodemailer = require('nodemailer');
-const $ = require('cheerio');
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const axios = require('axios');
-
-// function removeChromiumAlert() {
-//   try {
-//     const chromiumPath = '/chrome-mac/Chromium.app';
-//     const macPath = path.join(
-//       path.dirname(require.resolve('puppeteer')),
-//       '/.local-chromium/'
-//     );
-//     const [generatedDir] = fs
-//       .readdirSync(macPath, { withFileTypes: true })
-//       .filter((dirent) => dirent.isDirectory())
-//       .map((dirent) => dirent.name);
-//     const chromiumAppPath = path.join(macPath, generatedDir, chromiumPath);
-//     const mode = `0${(
-//       fs.statSync(chromiumAppPath).mode & parseInt('777', 8)
-//     ).toString(8)}`;
-
-//     if (mode !== '0777') {
-//       execSync(`sudo chmod 777 ${chromiumAppPath}`);
-//       execSync(`sudo codesign --force --deep --sign - ${chromiumAppPath}`);
-//     }
-//   } catch (err) {
-//     console.warn(
-//       'unable to sign Chromium, u may see the annoying message when the browser start'
-//     );
-//     console.warn(err);
-//   }
-// }
-
-// const ps5_url =
-//   'https://www.walmart.com/ip/Sony-PlayStation-5-Digital-Edition/493824815';
-// const rand_url = 'https://www.google.com';
-const rand_url =
+const url =
   'https://clients.mindbodyonline.com/asp/adm/adm_appt_search.asp?studioid=253992&tab';
-// const rand_url =
-//   'https://www.walmart.com/ip/Nintendo-Switch-Lite-Console-Turquoise/306029956';
-// const rand_url =
-//   'https://www.walmart.com/ip/Sony-PlayStation-5-Digital-Edition/493824815';
-// removeChromiumAlert();
-async function initBrowser() {
-  const browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null,
-    // args: ['--no-sandbox', '--disable-gpu'],
-  });
-  const page = await browser.newPage();
 
-  await page.goto(rand_url);
-  return page;
+function formattedDate(d = new Date()) {
+  return [d.getDate() + 14, d.getMonth() + 1, d.getFullYear()]
+    .map((n) => (n < 10 ? `0${n}` : `${n}`))
+    .join('/');
 }
 
-async function sendNotification() {
-  let transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'ameshalexburner@gmail.com',
-      pass: 'Water@123',
-    },
-  });
+(async () => {
+  try {
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: null,
+      args: ['--no-sandbox', '--disable-gpu'],
+    });
+    const page = await browser.newPage();
 
-  let textToSend = 'Go get that Playstation 5!';
-  let htmlText = `<a href=\"${rand_url}\">Link</a>`;
+    page.on('error', (e) => console.log(e));
 
-  let info = await transporter.sendMail({
-    from: '"Walmart Monitor" <ameshalexusa@gmail.com>',
-    to: 'ameshalexusa@gmail.com',
-    subject: 'Playstation 5 IS IN STOCK',
-    text: textToSend,
-    html: htmlText,
-  });
+    await page.goto(url);
+    await page.waitForTimeout(2000);
+    await page.click("input[id='btnSignIn']", { delay: 20 });
+    await page.waitForTimeout(2000);
+    await page.type("input[id='su1UserName']", 'ameshalexusa@gmail.com', {
+      delay: 20,
+    });
+    await page.waitForTimeout(2000);
 
-  console.log('Message Sent: %s', info.messageId);
-}
+    await page.type("input[id='su1Password']", 'Water@123', {
+      delay: 20,
+    });
+    await page.waitForTimeout(2000);
+    await page.click("input[id='btnSu1Login']", { delay: 20 });
+    await page.waitForTimeout(2000);
+    await page.click("a[id='tabA9']", { delay: 20 });
+    await page.waitForTimeout(2000);
+    await page.click("input[id='txtDate']", { delay: 20 });
+    await page.waitForTimeout(2000);
+    const inputValue = await page.$eval('#txtDate', (el) => el.value);
+    for (let i = 0; i < inputValue.length; i++) {
+      await page.keyboard.press('Backspace');
+    }
+    await page.waitForTimeout(2000);
+    await page.type("input[id='txtDate']", formattedDate(), { delay: 20 });
+    await page.waitForTimeout(2000);
+    await page.keyboard.press('Enter');
 
-async function checkStock(page) {
-  await page.reload();
-  console.log(page._frameManager._mainFrame._mainWorld._frameManager._page);
+    await page.waitForTimeout(2000);
 
-  // const nodeChildren = await page.$eval(body, (uiElement) => {
-  //   return uiElement.children;
-  // });
-  // console.log(nodeChildren); // Outputs the array of the nodes children
+    const trCheck = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('tr'), (e) => e)
+    );
 
-  // let content = await page.evaluate(() => document.body.innerHTML);
-  // console.log('ss');
-  // await page.type('body', 'ameshalexusa@gmail.com', { delay: 10 });
+    await console.log(trCheck, 1);
 
-  // const example = await page.$('#footer');
+    const selectedTrCheck = await trCheck.filter((x, idx) => {
+      if (idx === 39) {
+        return x;
+      }
+    });
 
-  // console.log(example);
-}
+    await console.log(selectedTrCheck, 2);
 
-async function monitor() {
-  const page = await initBrowser();
-  let job = new CronJob(
-    '*/30 * * * *',
-    function () {
-      checkStock(page);
-    },
-    null,
-    true,
-    null,
-    null,
-    true
-  );
-  job.start();
-}
+    let selectedTdCheck = await selectedTrCheck.filter((x, idx) => {
+      if (
+        idx === 1 ||
+        idx === 3 ||
+        idx === 5 ||
+        idx === 7 ||
+        idx === 9 ||
+        idx === 11
+      ) {
+        return x;
+      }
+    });
+    await console.log(selectedTdCheck, 3);
 
-monitor();
+    let selectedChildren = await Array.from(selectedTdCheck[0]);
+
+    await console.log(selectedChildren, 4);
+
+    // let selectedChildrenArray = await Array.from(selectedChildren);
+
+    await console.log(selectedChildrenArray, 5);
+
+    let availableSlots = await selectedChildrenArray.filter((x) => {
+      if (x.className.includes('avail')) {
+        return x;
+      }
+    });
+    await console.log(availableSlots, 6);
+
+    // const d = c.filter((x) => {
+    //   console.log(x.children[0]);
+    // });
+
+    // const sevenPmSlot = await page.$$eval('tr', (el) =>
+    //   el.filter((x, idx) => {
+    //     if (idx === 20) {
+    //       return x;
+    //     }
+    //   })
+    // );
+
+    // await console.log(sevenPmSlot);
+
+    // const convertedSevenPmSlot = await Array.prototype.slice.call(sevenPmSlot);
+    // await console.log(convertedSevenPmSlot);
+    // const value = await page.evaluate(() => {
+    //   innerValue = document.querySelectorAll('.avail').children[0];
+
+    //   return innerValue;
+    // });
+
+    // await console.log(value);
+
+    // await page.click("input[class='find-an-appt-bttn simpleButton']", {
+    //   delay: 20,
+    // });
+
+    // let linkTexts = await page.$$eval('td', (elements) =>
+    //   elements.map((item) => {
+    //     return item;
+    //   })
+    // );
+    // // prints a array of text
+    // await console.log(linkTexts);
+
+    // let bob = document.querySelectorAll('tr');
+
+    // let tom = bob[25];
+
+    // for (let i of tom) {
+    //   if (i.children[0].classList[0] === 'apptLink') {
+    //     console.log(i.children[0].classList[0]);
+    //   }
+    // }
+
+    // let linkTexts = await page.$$eval('.apptLink', (elements) =>
+    //   elements.map((item) => {
+    //     if (item.href.includes('Stime=8:30:00%20AM')) {
+    //       return item.href;
+    //     }
+    //   })
+    // );
+    // // prints a array of text
+    // await console.log(linkTexts);
+
+    // const elHandleArray = await page.$$eval('apptLink');
+
+    // elHandleArray.map(async (el) => {
+    //   await console.log(el);
+    // });
+
+    // await page.evaluate(() => {
+    //   await let elements = document.getElementsByClassName('apptLink');
+    //   if (elements) {
+    //     for (let element of elements) {
+    //        console.log(element);
+    //     }
+    //   } else {
+    //      console.log('no results');
+    //   }
+    // });
+    // const nodeChildren = await page.$eval(
+    //   "a[class='apptLink mainTextSmall2']",
+    //   (uiElement) => {
+    //     for (i of uiElement) {
+    //       return i;
+    //     }
+    //   }
+    // );
+    // console.log(nodeChildren);
+    // console.log(nodeChildren[0]);
+    // await browser.close();
+  } catch (e) {
+    console.log(e);
+  }
+})();
